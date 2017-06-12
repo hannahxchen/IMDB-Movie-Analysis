@@ -2,7 +2,7 @@
 title: "IMDB Movie Analysis"
 author: "Hannah"
 date: "June 9, 2017"
-output: html_document
+output: github_document
 ---
 
 ##資料介紹
@@ -103,7 +103,21 @@ temp <-temp %>% group_by(director_name) %>% summarise(imdb_avg=mean(imdb_score))
 temp <- temp %>% arrange(desc(imdb_avg))
 temp <- head(temp,20)
 library(formattable)
-temp %>% formattable(list(imdb_avg = color_bar("orange")), align = 'l')
+library("htmltools")
+library("webshot")    
+export_formattable <- function(f, file, width = "100%", height = NULL, 
+                               background = "white", delay = 0.2)
+    {
+      w <- as.htmlwidget(f, width = width, height = height)
+      path <- html_print(w, background = background, viewer = NULL)
+      url <- paste0("file:///", gsub("\\\\", "/", normalizePath(path)))
+      webshot(url,
+              file = file,
+              selector = ".formattable_widget",
+              delay = delay)
+    }
+img<-temp %>% formattable(list(imdb_avg = color_bar("orange")), align = 'l')
+export_formattable(img,"director_imdbscore.png")
 ```
 
 分析哪些導演拍的電影得到的平均Metascore評分比較高
@@ -112,7 +126,8 @@ temp<-score_clean%>%select(director_name,metascore)
 temp <-temp %>% group_by(director_name) %>% summarise(metascore_avg=mean(metascore))
 temp <- temp %>% arrange(desc(metascore_avg))
 temp <- head(temp,20)
-temp %>% formattable(list(metascore_avg = color_bar("lightgreen")), align = 'l')
+img2<-temp %>% formattable(list(metascore_avg = color_bar("lightgreen")), align = 'l')
+export_formattable(img2,"director_metascore.png")
 ```
 
 5. 分析是否電影卡司越受歡迎，總收益越好
@@ -165,8 +180,8 @@ keywords_sum <- data.frame(keywords = factor(keywords), sum = sum)
 keywords_sum <- keywords_sum[order(sum, decreasing = TRUE),]
 keywords_sum<-na.omit(keywords_sum)
 top_keywords<-head(keywords_sum, 20)
-top_keywords%>% formattable(list(sum = color_bar("lightblue")), align = 'l')
-
+img3<-(top_keywords%>% formattable(list(sum = color_bar("lightblue")), align = 'l'))
+export_formattable(img3,"keywordsTop20.png")
 ```
 
 
