@@ -2,7 +2,7 @@
 title: "IMDB Movie Analysis"
 author: "Hannah"
 date: "June 9, 2017"
-output: github_document
+output: html_document
 ---
 
 ##資料介紹
