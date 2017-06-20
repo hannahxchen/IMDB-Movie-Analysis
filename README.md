@@ -1,7 +1,7 @@
 IMDB Movie Analysis
 ================
 Hannah
-June 9, 2017
+June 21, 2017
 
 資料介紹
 --------
@@ -22,7 +22,7 @@ June 9, 2017
 3.  假設在電影分級中，普遍級(G)電影的IMDB score和metascore普遍較高
 4.  哪些導演拍的電影得到的平均IMDB/Metascore評分比較高
 5.  假設電影卡司越受歡迎，總收益越高
-6.  那些劇情內容的電影最多？
+6.  假設劇情較重口味、黑暗、或刺激類型的電影比較多
 7.  假設電影總收益有增加的趨勢
 
 分析結果
@@ -37,7 +37,7 @@ library(readr)
     ## Warning: package 'readr' was built under R version 3.3.3
 
 ``` r
-movie_metadata_latest3 <- read_csv("~/GitHub/movie_metadata_latest3.csv", locale = locale(encoding = "ASCII"))
+movie_metadata_latest3 <- read_csv("movie_metadata_latest3.csv", locale = locale(encoding = "ASCII"))
 ```
 
     ## Warning: Missing column names filled in: 'X1' [1]
@@ -327,6 +327,7 @@ export_formattable(img2,"director_metascore.png")
 ``` r
 temp<-movie_metadata%>%select(movie_title,title_year,cast_total_facebook_likes,gross,imdb_score,metascore)
 temp$movie_title<-sub("^\\s*<U\\+\\w+>\\s*", "", temp$movie_title)
+
 export(plot_ly(temp, x = ~gross, y = ~cast_total_facebook_likes, type = 'scatter', mode='marker', text =~paste(movie_title,title_year)))
 ```
 
@@ -347,7 +348,7 @@ export(plot_ly(temp, x = ~gross, y = ~cast_total_facebook_likes, type = 'scatter
 
 ![](README_files/figure-markdown_github/unnamed-chunk-9-1.png)
 
-1.  分析電影劇情keywords前20名 從結果可以發現電影劇情最受歡迎的有：溫馨路線(love、friend、friendship、marriage)，重口味(murder、death)、外星人(alien)、偵查辦案(police、prison、drugs、FBI)、學校(school、high school)、動作片(escape)等
+1.  分析電影劇情keywords前20名 從結果可以發現電影劇情最受歡迎的有：溫馨路線(love、friend、friendship、marriage)，重口味(murder、death)、外星人(alien)、偵查辦案(police、prison、drugs、FBI)、學校(school、high school)、動作片(escape)等。 結果與假設不同，電影類型最多的兩個皆是較走溫馨路線。
 
 ``` r
 temp<-movie_metadata%>%select(movie_title,gross,imdb_score,metascore,plot_keywords)
@@ -391,6 +392,104 @@ export_formattable(img3,"keywordsTop20.png")
 
 ![](README_files/figure-markdown_github/unnamed-chunk-10-1.png)
 
+Plot keywords wordcloud
+
+``` r
+library(wordcloud)
+```
+
+    ## Warning: package 'wordcloud' was built under R version 3.3.3
+
+    ## Loading required package: RColorBrewer
+
+``` r
+wordcloud(words = keywords_sum$keywords,freq = keywords_sum$sum, scale = c(6,0.3), random.order=FALSE, max.words = 50, colors = brewer.pal(7, "Dark2"))
+```
+
+    ## Warning in wordcloud(words = keywords_sum$keywords, freq = keywords_sum
+    ## $sum, : female protagonist could not be fit on page. It will not be
+    ## plotted.
+
+    ## Warning in wordcloud(words = keywords_sum$keywords, freq = keywords_sum
+    ## $sum, : teenager could not be fit on page. It will not be plotted.
+
+    ## Warning in wordcloud(words = keywords_sum$keywords, freq = keywords_sum
+    ## $sum, : hospital could not be fit on page. It will not be plotted.
+
+    ## Warning in wordcloud(words = keywords_sum$keywords, freq = keywords_sum
+    ## $sum, : serial killer could not be fit on page. It will not be plotted.
+
+    ## Warning in wordcloud(words = keywords_sum$keywords, freq = keywords_sum
+    ## $sum, : female nudity could not be fit on page. It will not be plotted.
+
+    ## Warning in wordcloud(words = keywords_sum$keywords, freq = keywords_sum
+    ## $sum, : christmas could not be fit on page. It will not be plotted.
+
+    ## Warning in wordcloud(words = keywords_sum$keywords, freq = keywords_sum
+    ## $sum, : lawyer could not be fit on page. It will not be plotted.
+
+    ## Warning in wordcloud(words = keywords_sum$keywords, freq = keywords_sum
+    ## $sum, : college could not be fit on page. It will not be plotted.
+
+    ## Warning in wordcloud(words = keywords_sum$keywords, freq = keywords_sum
+    ## $sum, : best friend could not be fit on page. It will not be plotted.
+
+![](README_files/figure-markdown_github/unnamed-chunk-11-1.png)
+
+計算電影keywords的平均總收益、IMDB Score、Metacritic Score
+
+``` r
+library(reshape2)
+```
+
+    ## Warning: package 'reshape2' was built under R version 3.3.3
+
+``` r
+movies_and_keywords<-cbind(gross = movies0$gross, imdb_score = movies0$imdb_score, metascore=movies0$metascore, movies_and_keywords, stringsAsFactors = FALSE)
+movies_and_keywords <- melt(movies_and_keywords, id = c("gross", "imdb_score","metascore"))
+movies_and_keywords$variable <- gsub("[.]", " ", movies_and_keywords$variable)
+movies_and_keywords <- movies_and_keywords[movies_and_keywords$value == 1, ] 
+movies_and_keywords$value <- NULL
+colnames(movies_and_keywords) <- c("gross", "imdb_score", "metascore", "keywords")
+movies_and_keywords<-na.omit(movies_and_keywords)
+movies_and_keywords2<-group_by(movies_and_keywords,keywords)%>%summarise("mean_gross"=mean(gross),"mean_imdbscore"=mean(imdb_score),"mean_metascore"=mean(metascore))
+```
+
+前20名keywords的總收益v.s.IMDB Score 可以發現總收益最高的兩個(island和alien)，反而得到的IMDB Score並沒有相對較高 drug的IMDB Score偏高，但是平均總收益相對沒有這麼高 目前找不到對三者的解釋，應該要再針對這三種類型的電影做更細部的了解。
+
+``` r
+top_keywords2<-merge(movies_and_keywords2,top_keywords)
+t <- list(
+  family = "sans serif",
+  size = 14,
+  color = toRGB("grey50"))
+export(plot_ly(top_keywords2, x = ~mean_imdbscore, y = ~mean_gross, type = 'scatter', mode="marker", text =~keywords)%>%add_text(textfont = t, textposition = "top right") )
+```
+
+    ## A marker object has been specified, but markers is not in the mode
+    ## Adding markers to the mode...
+    ## A marker object has been specified, but markers is not in the mode
+    ## Adding markers to the mode...
+    ## A marker object has been specified, but markers is not in the mode
+    ## Adding markers to the mode...
+
+![](README_files/figure-markdown_github/unnamed-chunk-13-1.png)
+
+前20名keywords的IMDB Score v.s. Metacritic Score 可以發現metacritic評分較高的比較多是普遍級或溫馨路線，像是school、friendship、friend等；IMDB評分較高的反而是比較重口味、冒險、劇情片的內容居多，像是的drugs、revenge、prison、police、escape等 由此可以發現大眾的口味和專業影評人之間喜歡電影的類型不太一樣。
+
+``` r
+export(plot_ly(top_keywords2, x = ~mean_imdbscore, y = ~mean_metascore, type = 'scatter', mode="marker", text =~keywords)%>%add_text(textfont = t, textposition = "top right"))
+```
+
+    ## A marker object has been specified, but markers is not in the mode
+    ## Adding markers to the mode...
+    ## A marker object has been specified, but markers is not in the mode
+    ## Adding markers to the mode...
+    ## A marker object has been specified, but markers is not in the mode
+    ## Adding markers to the mode...
+
+![](README_files/figure-markdown_github/unnamed-chunk-14-1.png)
+
 1.  分析電影總收益是否有增加的趨勢： 在1937年平均總收益達到最高，後來1947年後掉到最低，一直到1975年又到另一個高峰。在1977年掉下來後，一直到近年一直都以些微幅度在增長。
 
 ``` r
@@ -407,9 +506,10 @@ export(plot_ly(avg_gross_year, x = ~title_year, y = ~avg_gross, type = 'scatter'
     ## A line object has been specified, but lines is not in the mode
     ## Adding lines to the mode...
 
-![](README_files/figure-markdown_github/unnamed-chunk-11-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-15-1.png)
 
 分析結果可能解決的問題
 ======================
 
-由以上分析結果可以了解近年電影發展的趨勢，如電影類型、電影總收益等。另外還可以了解Metacritic網站和IMDB網站評分性質差異，還有與電影其他相關資訊之間的關係。
+1.  了解近年電影發展的趨勢，如電影類型、電影總收益等。
+2.  由Metacritic網站和IMDB網站評分來了解專業影評人與一般大眾對電影喜好的差異。
